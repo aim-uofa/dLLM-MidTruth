@@ -11,6 +11,7 @@
 
 ## 📣 News
 
+- [2026-01-27] [dLLM-MidTruth](https://arxiv.org/abs/2508.09138) is accepted by ICLR 2026.
 - [2025-08-21] Code of Temporal Self-Consistency Voting and Evaluation Released!
 - [2025-08-13] Paper Released!
 
