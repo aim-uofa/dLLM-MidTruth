@@ -1,6 +1,22 @@
-.vscode/
+*.png
 __pycache__/
 
+dataset
+# dataset/EleutherAI
+# dataset/gsm8k
+# dataset/HuggingFaceH4
+# dataset/simplescaling
 
-eval/outputs/
+pretrained_weights/
+wandb/
 checkpoints/
+
+
+third_parties/
+
+
+diffu-grpo/trl
+eval/outputs
+eval/eval_results
+SFT/outputs
+diffu-grpo/outputs

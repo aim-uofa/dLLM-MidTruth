@@ -11,6 +11,7 @@
 
 ## 📣 News
 
+- [2026-03-05] Training code of Temporal Consistency Reinforcement Released!
 - [2026-01-27] [dLLM-MidTruth](https://arxiv.org/abs/2508.09138) is accepted by ICLR 2026.
 - [2025-08-21] Code of Temporal Self-Consistency Voting and Evaluation Released!
 - [2025-08-13] Paper Released!
@@ -34,11 +35,21 @@ To address this issue, we introduce two complementary methods that exploit tempo
 
 ### Environment Setup
 
-To setup the environment, run;
-```
+To setup the environment, run:
+```bash
 conda env create -f env.yml
 conda activate tiaf
 ```
+
+Then install the dependencies:
+```bash
+bash install.sh
+```
+
+This will install required packages and set up the output directories. You also need to:
+1. Download the base model [LLaDA-8B-Instruct](https://huggingface.co/GSAI-ML/LLaDA-8B-Instruct) to `pretrained_weights/GSAI-ML/LLaDA-8B-Instruct`
+2. Download the required datasets (they will be loaded from `dataset/` directory):
+   - `openai/gsm8k`, `Jiayi-Pan/Countdown-Tasks-3to4`, `ankner/math-500`, `ChilleD/SVAMP`, `simplescaling/s1K`
 
 ### Temporal Majority Voting
 
@@ -49,7 +60,61 @@ Optionally, you may also specify `--vote_method` (fixed, linear, or exp) and, if
 
 
 
-<!-- ### Temporal Consistency Reinforcement -->
+### Temporal Consistency Reinforcement (Training)
+
+We provide training scripts for three stages:
+
+#### Stage 1: SFT (Supervised Fine-Tuning)
+
+Fine-tune the base dLLM model on the [s1K dataset](https://huggingface.co/datasets/simplescaling/s1K) with LoRA adapters:
+
+```bash
+bash scripts/train_sft.sh
+```
+
+Key hyperparameters (configurable in the script):
+| Parameter | Default | Description |
+|-----------|---------|-------------|
+| `LR` | `1e-5` | Learning rate |
+| `NUM_EPOCHS` | `20` | Number of training epochs |
+| `BATCH_SIZE` | `1` | Per-device batch size |
+| `GRAD_ACCUM_STEPS` | `4` | Gradient accumulation steps |
+| `NUM_GPUS` | `8` | Number of GPUs |
+
+#### Stage 2: RFT with Temporal Reward Only
+
+Train with GRPO using only the Temporal Semantic Entropy (TSE) as reward signal — **no ground-truth labels needed**:
+
+```bash
+bash scripts/train_rft_temporal.sh
+```
+
+Key hyperparameters:
+| Parameter | Default | Description |
+|-----------|---------|-------------|
+| `DATASET` | `countdown` | Training dataset (`countdown`, `gsm8k`, `math`, `svamp`, `sudoku`) |
+| `SFT_PATH` | `outputs/sft/...` | Path to SFT checkpoint (from Stage 1) |
+| `TEMPORAL_REWARD_TYPE` | `exp` | TSE weighting: `fixed`, `linear`, or `exp` |
+| `TEMPORAL_REWARD_WEIGHT` | `2.0` | Weight for the temporal reward |
+| `ENTROPY_SKIP_STEPS_RATIO` | `0.5` | Skip first 50% denoising steps for entropy |
+| `ENTROPY_EXP_ALPHA` | `12.8` | Exponential decay factor for time weighting |
+| `NUM_ITERATIONS` | `12` | GRPO inner update iterations (μ) |
+| `NUM_GENERATIONS` | `6` | Group size for GRPO |
+| `DIFFUSION_STEPS` | `128` | Number of diffusion denoising steps |
+
+#### Stage 2 (Alternative): RFT with Temporal + Accuracy Reward
+
+Train with GRPO using both TSE and ground-truth accuracy, combined via a proper scoring rule:
+
+```bash
+bash scripts/train_rft_temporal_acc.sh
+```
+
+Additional hyperparameters (on top of the temporal-only setting):
+| Parameter | Default | Description |
+|-----------|---------|-------------|
+| `TEMPORAL_GT_COMBINE_METHOD` | `spherical_plus` | Scoring rule: `brier`, `logarithmic`, `spherical`, `logarithmic_plus`, `spherical_plus` |
+| `TEMPORAL_REWARD_WITH_GT` | `1` | Enable combined temporal + accuracy reward |
 
 ### Evaluation
 
@@ -80,8 +145,7 @@ To compute accuracy, run `get_acc.py` after the evaluation is done.
 
 ## 🚩 Plan
 - [x] source code of temporal self-consistency voting and evaluation
-- [ ] source code of temporal consistency reinforcement
-- [ ] checkpoints of temporal consistency reinforcement
+- [x] source code of temporal consistency reinforcement (SFT + RFT training)
 
 ## 🎫 License
 
